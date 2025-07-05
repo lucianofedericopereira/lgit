@@ -6,6 +6,11 @@ lgit is a sleek, nerd font-enhanced shell script that wraps common Git workflows
 <img src="README.png" alt="Command output screenshot">
 </center>
 
+<center>
+<img src="README2.png" alt="Command log screenshot">
+</center>
+
+
 Designed for terminal lovers, it offers a curated set of subcommands (init, add, commit, status, log, restore, reset, rebuild) to streamline Git operations 
 in local directories—plus it syncs changes via a Git remote powered by a local SQLite .db file.
 
