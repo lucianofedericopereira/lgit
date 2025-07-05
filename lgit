@@ -1,44 +1,47 @@
 #!/bin/bash
-
 set -euo pipefail
-
 TARGETDIR="$(pwd)"
 DBFILE="$TARGETDIR/git.db"
 SHFILE="$(basename "$0")"
-R="\e[0m"
-N="\e[38;2;171;155;114m"
-B="\e[38;2;254;128;25m"
+color() {
+  local rgb="$1"
+  printf '\033[38;2;%sm' "$rgb"
+}
 
+R=$(printf '\033[0m')
+N=$(color "171;155;114")
+M=$(color "124;111;100")
+B=$(color "254;128;25")
 
 print_help() {
-  echo ''
-  echo -e " Local Git ${N}- A Git CLI Wrapper with SQLite Sync and Style${R}"
+  echo
+  echo " Local Git ${N}- A Git CLI Wrapper with SQLite Sync and Style${R}"
   echo ""
-  echo -e " $B$R  Usage: $SHFILE ${N}<${R}command${N}>${R} ${N}[${R}options${N}]${R}"
+  echo " $B$R  Usage: $SHFILE ${N}<${R}command${N}>${R} ${N}[${R}options${N}]${R}"
   echo ""
-  echo -e " $B$R  Available commands"
+  echo " $B$R  Available commands"
+  echo
+  echo "    $B$R  init                    ${N}Initialize a repo, add all files, and push to SQLite${R}"
+  echo "    $B$R  add ${N}[${R}file${N}...]${R}           ${N}Add file(s) to staging for the next commit${R}"
+  echo "    $B$R  commit ${N}[${R}message${N}]${R}        ${N}Commit changes with a message (prompted) and push${R}"
+  echo "    $B$R  status                  ${N}Show the current Git working tree status${R}"
+  echo "    $B$R  log                     ${N}Show recent commit history (oneline, graph view)${R}"
+  echo "    $B󰄱$R  restore ${N}[${R} Hash${N}]${R} ${N}[${R}file${N}]${R} ${N}Restore a file from full tree (with prompt)${R}"
+  echo "    $B󰓾$R  reset   ${N}[${R} Hash${N}]${R}        ${N}Hard reset HEAD and directory to a commit${R}"
+  echo "    $B$R  rebuild                 ${N}Rebuild .git from SQLite snapshot (with confirmation)${R}"
+  echo "    $B$R  help, ${N}${R}h, ${N}${R}help        ${N}Display this help message${R}"
   echo ""
-  echo -e "    $B$R  init                    ${N}Initialize a repo, add all files, and push to SQLite${R}"
-  echo -e "    $B$R  add ${N}[${R}file${N}...]${R}           ${N}Add file(s) to staging for the next commit${R}"
-  echo -e "    $B$R  commit ${N}[${R}message${N}]${R}        ${N}Commit changes with a message (prompted) and push${R}"
-  echo -e "    $B$R  status                  ${N}Show the current Git working tree status${R}"
-  echo -e "    $B$R  log                     ${N}Show recent commit history (oneline, graph view)${R}"
-  echo -e "    $B󰄱$R  restore ${N}[${R} Hash${N}]${R} ${N}[${R}file${N}]${R} ${N}Restore a file from full tree (with prompt)${R}"
-  echo -e "    $B󰓾$R  reset   ${N}[${R} Hash${N}]${R}        ${N}Hard reset HEAD and directory to a commit${R}"
-  echo -e "    $B$R  rebuild                 ${N}Rebuild .git from SQLite snapshot (with confirmation)${R}"
-  echo -e "    $B$R  help, ${N}${R}h, ${N}${R}help        ${N}Display this help message${R}"
+  echo " $B$R  Examples:"
   echo ""
-  echo -e " $B$R  Examples:"
-  echo ""
-  echo -e "    $N$R  $SHFILE init"
-  echo -e "    $N$R  $SHFILE add main.py utils/ config.yml"
-  echo -e "    $N$R  $SHFILE commit ${N}\"${R}My commit comment${N}\"${R}"
-  echo -e "    $N$R  $SHFILE status"
-  echo -e "    $N$R  $SHFILE log"
-  echo -e "    $N$R  $SHFILE restore 1234abcd"
-  echo -e "    $N$R  $SHFILE restore 1234abcd main.py"
-  echo -e "    $N$R  $SHFILE reset fedcba98"
-  echo -e "    $N$R  $SHFILE rebuild"
+  echo "    $N$R  $SHFILE init"
+  echo "    $N$R  $SHFILE add main.py utils/ config.yml"
+  echo "    $N$R  $SHFILE commit ${N}\"${R}My commit comment${N}\"${R}"
+  echo "    $N$R  $SHFILE status"
+  echo "    $N$R  $SHFILE log"
+  echo "    $N$R  $SHFILE restore 1234abcd"
+  echo "    $N$R  $SHFILE restore 1234abcd main.py"
+  echo "    $N$R  $SHFILE reset fedcba98"
+  echo "    $N$R  $SHFILE rebuild"
   echo ''
 }
 
@@ -108,9 +111,10 @@ case "${1:-}" in
       exit 1
     fi
     echo
-    echo -e "\e[2m  ┌───────────┬─────────────────────────────────────────────────────────────┐\e[0m"
-    echo -e "\e[2m  │\e[0m   \e[32mHash\e[0m    \e[2m│\e[0m\e[32m Reference & Message\e[0m                                         \e[2m│\e[0m"
-    echo -e "\e[2m  ├───────────┼─────────────────────────────────────────────────────────────┤\e[0m"
+    echo "${M}  ┌───────────┬─────────────────────────────────────────────────────────────┐${R}"
+    echo "${M}  │${R}  ${M}${R} ${B}Hash${R}   ${M}│${R}${B} Reference & Message${R}                                         ${M}│${R}"
+    echo "${M}  ├───────────┼─────────────────────────────────────────────────────────────┤${R}"
+
 git log --pretty=format:"%h|%s|%d" | while IFS='|' read -r HASH MSG DECORATION; do
   REFS=$(echo "$DECORATION" | sed -E 's/^\(|\)$//g')
   IFS=',' read -ra ref_array <<< "$REFS"
@@ -136,15 +140,21 @@ git log --pretty=format:"%h|%s|%d" | while IFS='|' read -r HASH MSG DECORATION; 
   ref_len=${#SHORT_REFS}
   msg_space=$((TOTAL_WIDTH - ref_len - 1))
   if (( ${#MSG} > msg_space )); then
-    SHORT_MSG="${MSG:0:$((msg_space - 3))}..."
+
+SHORT_PLAIN="${MSG:0:$((msg_space - 3))}"
+SHORT_MSG="${SHORT_PLAIN}${N}...${R}"
+
+
   else
     SHORT_MSG="$MSG"
   fi
-  printf "\e[2m  │\e[0m \e[33m %-8s\e[0m\e[2m │\e[0m %-*s %*s\e[2m│\e[0m\n" \
-    "$HASH" "$msg_space" "$SHORT_MSG" "$ref_len" "$SHORT_REFS"
+  printf "${M}  │${R}  ${N}%-8s${R}${M} │${R} %-*s %*s${M}│${R}\n" \
+  "$HASH" "$msg_space" "$SHORT_MSG" "$ref_len" "${N}$SHORT_REFS"
 done
-    echo -e "\e[2m  └───────────┴─────────────────────────────────────────────────────────────┘\e[0m"
+    echo "${M}  └───────────┴─────────────────────────────────────────────────────────────┘${R}"
     ;;
+
+
 
   restore)
     shift
