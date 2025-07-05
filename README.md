@@ -27,15 +27,25 @@ Use it as a personal Git frontend or as part of a reproducible local history wor
   lgit <command> [options]
 
 📚 Available commands:
- **init**                   Initialize a repo, add all files, and push to SQLite<br>
- **add** [file...]          Add file(s) to staging for the next commit<br>
- **commit** [message]       Commit changes with a message (prompted) and push<br>
- **status**                 Show the current Git working tree status<br>
- **log**                    Show recent commit history (oneline, graph view)<br>
- **restore** [Hash] [file]  Restore a file from full tree (with prompt)<br>
- **reset**   [Hash]         Hard reset HEAD and directory to a commit<br>
- **rebuild**                Rebuild .git from SQLite snapshot (with confirmation)<br>
- **help, -h, --help**       Display this help message<br>
+
+**init**                   Initialize a repo, add all files, and push to SQLite<br>
+
+**add** [file...]          Add file(s) to staging for the next commit<br>
+
+**commit** [message]       Commit changes with a message (prompted) and push<br>
+
+**status**                 Show the current Git working tree status<br>
+
+**log**                    Show recent commit history (oneline, graph view)<br>
+
+**restore** [Hash] [file]  Restore a file from full tree (with prompt)<br>
+
+**reset**   [Hash]         Hard reset HEAD and directory to a commit<br>
+
+**rebuild**                Rebuild .git from SQLite snapshot (with confirmation)<br>
+
+**help, -h, --help**       Display this help message<br>
+
 <br>
 💡 Examples:<br>
   lgit init<br>
