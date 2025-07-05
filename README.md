@@ -27,24 +27,24 @@ Use it as a personal Git frontend or as part of a reproducible local history wor
   lgit <command> [options]
 
 📚 Available commands:
- **init**                   Initialize a repo, add all files, and push to SQLite
- **add** [file...]          Add file(s) to staging for the next commit
- **commit** [message]       Commit changes with a message (prompted) and push
- **status**                 Show the current Git working tree status
- **log**                    Show recent commit history (oneline, graph view)
- **restore** [Hash] [file]  Restore a file from full tree (with prompt)
- **reset**   [Hash]         Hard reset HEAD and directory to a commit
- **rebuild**                Rebuild .git from SQLite snapshot (with confirmation)
- **help, -h, --help**       Display this help message
-
-💡 Examples:
-  lgit init
-  lgit add main.py utils/ config.yml
-  lgit commit "My commit comment"
-  lgit status
-  lgit log
-  lgit restore 1234abcd
-  lgit restore 1234abcd main.py
-  lgit reset fedcba98
-  lgit rebuild
+ **init**                   Initialize a repo, add all files, and push to SQLite<br>
+ **add** [file...]          Add file(s) to staging for the next commit<br>
+ **commit** [message]       Commit changes with a message (prompted) and push<br>
+ **status**                 Show the current Git working tree status<br>
+ **log**                    Show recent commit history (oneline, graph view)<br>
+ **restore** [Hash] [file]  Restore a file from full tree (with prompt)<br>
+ **reset**   [Hash]         Hard reset HEAD and directory to a commit<br>
+ **rebuild**                Rebuild .git from SQLite snapshot (with confirmation)<br>
+ **help, -h, --help**       Display this help message<br>
+<br>
+💡 Examples:<br>
+  lgit init<br>
+  lgit add main.py utils/ config.yml<br>
+  lgit commit "My commit comment"<br>
+  lgit status<br>
+  lgit log<br>
+  lgit restore 1234abcd<br>
+  lgit restore 1234abcd main.py<br>
+  lgit reset fedcba98<br>
+  lgit rebuild<br>
 
