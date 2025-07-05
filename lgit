@@ -111,20 +111,40 @@ case "${1:-}" in
     echo -e "\e[2m  ┌───────────┬─────────────────────────────────────────────────────────────┐\e[0m"
     echo -e "\e[2m  │\e[0m   \e[32mHash\e[0m    \e[2m│\e[0m\e[32m Reference & Message\e[0m                                         \e[2m│\e[0m"
     echo -e "\e[2m  ├───────────┼─────────────────────────────────────────────────────────────┤\e[0m"
+git log --pretty=format:"%h|%s|%d" | while IFS='|' read -r HASH MSG DECORATION; do
+  REFS=$(echo "$DECORATION" | sed -E 's/^\(|\)$//g')
+  IFS=',' read -ra ref_array <<< "$REFS"
+  useful_refs=()
+  for ref in "${ref_array[@]}"; do
+    r=$(echo "$ref" | sed -E 's/^ //g')
+    if [[ "$r" == "HEAD ->"* ]]; then
+      useful_refs+=("${r/HEAD -> /}")
+    elif [[ "$r" == tag:* ]]; then
+      useful_refs+=("${r/tag: /}")
+    elif [[ "$r" == "origin/HEAD" ]]; then
+      continue
+    elif [[ "$r" == origin/* ]]; then
+      useful_refs+=("$r")
+    fi
+  done
 
-    git log --oneline --decorate | while IFS= read -r line; do
-      HASH=$(echo "$line" | awk '{print $1}')
-      REST=$(echo "$line" | cut -d' ' -f2-)
-
-
-printf "\e[2m  │\e[0m \e[33m %-8s\e[0m\e[2m │\e[0m\e[0m %-59s \e[2m│\e[0m\n" "$HASH" "$REST"
-
-    done
-
+  SHORT_REFS=""
+  if [ ${#useful_refs[@]} -gt 0 ]; then
+    SHORT_REFS="(${useful_refs[*]}) "
+  fi
+  TOTAL_WIDTH=60
+  ref_len=${#SHORT_REFS}
+  msg_space=$((TOTAL_WIDTH - ref_len - 1))
+  if (( ${#MSG} > msg_space )); then
+    SHORT_MSG="${MSG:0:$((msg_space - 3))}..."
+  else
+    SHORT_MSG="$MSG"
+  fi
+  printf "\e[2m  │\e[0m \e[33m %-8s\e[0m\e[2m │\e[0m %-*s %*s\e[2m│\e[0m\n" \
+    "$HASH" "$msg_space" "$SHORT_MSG" "$ref_len" "$SHORT_REFS"
+done
     echo -e "\e[2m  └───────────┴─────────────────────────────────────────────────────────────┘\e[0m"
     ;;
-
-
 
   restore)
     shift
