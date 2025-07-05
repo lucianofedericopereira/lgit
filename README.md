@@ -22,6 +22,16 @@ in local directories—plus it syncs changes via a Git remote powered by a local
 Use it as a personal Git frontend or as part of a reproducible local history workflow. Fast, functional, and terminal-native.
 
 
+🔌 Powered by git-remote-sqlite
+
+lgit uses git-remote-sqlite, a Git remote helper that enables pushing and pulling Git data to and from a local .db file using the sqlite:// protocol.
+
+This tool makes it possible for lgit to version your project history into a standalone SQLite file—ideal for offline backups, embedded workflows, or local syncing.
+
+    ℹ️ Make sure git-remote-sqlite is installed and on your $PATH. You can get it from 
+
+https://github.com/chrislloyd/git-remote-sqlite
+
 ## 🧰 Usage:
 
   lgit <command> [options]
