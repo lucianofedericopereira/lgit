@@ -1,0 +1,213 @@
+#!/bin/bash
+
+set -euo pipefail
+
+TARGETDIR="$(pwd)"
+DBFILE="$TARGETDIR/git.db"
+SHFILE="$(basename "$0")"
+R="\e[0m"
+N="\e[38;2;171;155;114m"
+B="\e[38;2;254;128;25m"
+
+
+print_help() {
+  echo ''
+  echo -e " Local Git ${N}- A Git CLI Wrapper with SQLite Sync and Style${R}"
+  echo ""
+  echo -e " $B$R  Usage: $SHFILE ${N}<${R}command${N}>${R} ${N}[${R}options${N}]${R}"
+  echo ""
+  echo -e " $B$R  Available commands"
+  echo ""
+  echo -e "    $B$R  init                    ${N}Initialize a repo, add all files, and push to SQLite${R}"
+  echo -e "    $B$R  add ${N}[${R}file${N}...]${R}           ${N}Add file(s) to staging for the next commit${R}"
+  echo -e "    $B$R  commit ${N}[${R}message${N}]${R}        ${N}Commit changes with a message (prompted) and push${R}"
+  echo -e "    $B$R  status                  ${N}Show the current Git working tree status${R}"
+  echo -e "    $B$R  log                     ${N}Show recent commit history (oneline, graph view)${R}"
+  echo -e "    $B󰄱$R  restore ${N}[${R} Hash${N}]${R} ${N}[${R}file${N}]${R} ${N}Restore a file from full tree (with prompt)${R}"
+  echo -e "    $B󰓾$R  reset   ${N}[${R} Hash${N}]${R}        ${N}Hard reset HEAD and directory to a commit${R}"
+  echo -e "    $B$R  rebuild                 ${N}Rebuild .git from SQLite snapshot (with confirmation)${R}"
+  echo -e "    $B$R  help, ${N}${R}h, ${N}${R}help        ${N}Display this help message${R}"
+  echo ""
+  echo -e " $B$R  Examples:"
+  echo ""
+  echo -e "    $N$R  $SHFILE init"
+  echo -e "    $N$R  $SHFILE add main.py utils/ config.yml"
+  echo -e "    $N$R  $SHFILE commit ${N}\"${R}My commit comment${N}\"${R}"
+  echo -e "    $N$R  $SHFILE status"
+  echo -e "    $N$R  $SHFILE log"
+  echo -e "    $N$R  $SHFILE restore 1234abcd"
+  echo -e "    $N$R  $SHFILE restore 1234abcd main.py"
+  echo -e "    $N$R  $SHFILE reset fedcba98"
+  echo -e "    $N$R  $SHFILE rebuild"
+  echo ''
+}
+
+case "${1:-}" in
+  init)
+    if [ -d "$TARGETDIR/.git" ]; then
+      echo " Already a Git repo."
+      exit 1
+    fi
+    echo " Initializing Git repo in $TARGETDIR"
+    git init
+    echo "git.db" > .gitignore
+    git add .
+    git commit -m "Initial commit"
+    git branch -M main
+    git push sqlite://"$DBFILE" main
+    echo " Repo initialized and pushed to $DBFILE"
+    ;;
+
+  add)
+    shift
+    if [ ! -d ".git" ]; then
+      echo " Not a Git repository."
+      exit 1
+    fi
+    if [ $# -eq 0 ]; then
+      echo " Usage: lgit add <file> [...]"
+      exit 1
+    fi
+    echo " Adding file(s): $*"
+    git add "$@"
+    echo " File(s) staged."
+    ;;
+
+  commit)
+    shift
+    if [ ! -d ".git" ]; then
+      echo " Not a Git repository."
+      exit 1
+    fi
+    COMMIT_MSG="$*"
+    if [ -z "$COMMIT_MSG" ]; then
+      echo " Enter commit message:"
+      read -r COMMIT_MSG
+      if [ -z "$COMMIT_MSG" ]; then
+        echo " Commit message cannot be empty."
+        exit 1
+      fi
+    fi
+    git add -A
+    git commit -m "$COMMIT_MSG"
+    git push sqlite://"$DBFILE" main
+    echo " Changes committed and pushed to $DBFILE"
+    ;;
+
+  status)
+    if [ ! -d ".git" ]; then
+      echo " Not a Git repository."
+      exit 1
+    fi
+    git status
+    ;;
+
+  log)
+    if [ ! -d ".git" ]; then
+      echo " Not a Git repository."
+      exit 1
+    fi
+    echo
+    echo -e "\e[2m  ┌───────────┬─────────────────────────────────────────────────────────────┐\e[0m"
+    echo -e "\e[2m  │\e[0m   \e[32mHash\e[0m    \e[2m│\e[0m\e[32m Reference & Message\e[0m                                         \e[2m│\e[0m"
+    echo -e "\e[2m  ├───────────┼─────────────────────────────────────────────────────────────┤\e[0m"
+
+    git log --oneline --decorate | while IFS= read -r line; do
+      HASH=$(echo "$line" | awk '{print $1}')
+      REST=$(echo "$line" | cut -d' ' -f2-)
+
+
+printf "\e[2m  │\e[0m \e[33m %-8s\e[0m\e[2m │\e[0m\e[0m %-59s \e[2m│\e[0m\n" "$HASH" "$REST"
+
+    done
+
+    echo -e "\e[2m  └───────────┴─────────────────────────────────────────────────────────────┘\e[0m"
+    ;;
+
+
+
+  restore)
+    shift
+    if [ $# -lt 1 ]; then
+      echo " Usage: lgit restore <commit> [file]"
+      exit 1
+    fi
+
+    HASH="$1"
+    FILE="${2:-}"
+
+    if [ ! -d ".git" ]; then
+      echo " Not a Git repository."
+      exit 1
+    fi
+
+    if [ -n "$FILE" ]; then
+      if [ ! -f "$FILE" ]; then
+        echo " File '$FILE' not found in working directory."
+        exit 1
+      fi
+      echo "󰄱 Restoring file '$FILE' from commit $HASH..."
+      git restore --source "$HASH" -- "$FILE"
+      echo " File restored."
+    else
+      echo "󰓾 WARNING: This will reset the working directory to commit $HASH"
+      read -p " Are you sure? [y/N] " confirm
+      if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        git reset --hard "$HASH"
+        echo " Repository reset to commit $HASH"
+      else
+        echo " Aborted."
+      fi
+    fi
+    ;;
+
+  reset)
+    shift
+    if [ $# -lt 1 ]; then
+      echo " Usage: lgit reset <commit>"
+      exit 1
+    fi
+    HASH="$1"
+    echo "󰓾 WARNING: This will reset your branch history and working directory to $HASH"
+    read -p " Are you absolutely sure? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      git reset --hard "$HASH"
+      git push sqlite://"$DBFILE" main --force
+      echo " Hard reset complete and pushed to $DBFILE"
+    else
+      echo " Reset canceled."
+    fi
+    ;;
+
+  rebuild)
+    if [ ! -f "$DBFILE" ]; then
+      echo " SQLite database not found at $DBFILE"
+      exit 1
+    fi
+
+    echo "󰓾 WARNING: This will delete your current .git directory and rebuild from SQLite"
+    read -p " Are you sure? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      echo " Rebuilding Git repo from SQLite..."
+      rm -rf .git
+      git init
+      git remote add origin "sqlite://$DBFILE"
+      git fetch origin main
+      git reset --hard origin/main
+      echo " Git repo restored from SQLite at $DBFILE"
+    else
+      echo " Rebuild canceled."
+    fi
+    ;;
+
+
+  -h|--help|/h|help)
+    print_help
+    exit 0
+    ;;
+
+  *)
+    print_help
+    exit 1
+    ;;
+esac
